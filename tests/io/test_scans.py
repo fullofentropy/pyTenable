@@ -1522,6 +1522,32 @@ def test_scan_export_file_object(api):
                     break
         os.remove(filename)
 
+@pytest.mark.vcr()
+def test_scan_export_wasv2_conditional(api):
+    '''
+    this tests the WASv2 conditional that was added for exporting WAS reports
+    There are 4 types that can be exported, we check to see if the file
+    was created and bytes were written, then remove the file created.
+    '''
+    test_scan_id="enter some value that represents scan_id"
+    kwargs={'scan_type':'web-app2'}
+    report_types = ['nessus','csv', 'html','pdf']
+    for report_type in report_types:
+        file_to_generate = ("test_wasv2." + report_type)
+        with open(file_to_generate, 'wb') as export_obj:
+            api.scans.export(scan_id=test_scan_id, 
+                                        history_uuid=test_scan_id,
+                                        format=report_type,  
+                                        fobj=export_obj,
+                                        **kwargs)
+        assert os.path.isfile(file_to_generate)
+        with open(file_to_generate, 'rb') as fobj:
+            fobj.seek(0,os.SEEK_END)
+            assert fobj.tell() > 10
+        os.remove(file_to_generate)
+            
+
+
 # @pytest.mark.vcr()
 # def test_scan_host_details_scan_id_typeerror(api):
 #    with pytest.raises(TypeError):
@@ -2092,10 +2118,27 @@ def test_scan_results_without_history(api):
 @pytest.mark.vcr()
 def test_scan_results_with_history(api):
     """
-    requests using only Scan ID
+    requests wasv2 using Scan ID and History ID
     """
     scan = api.scans.results(scan_id=419, history_id="3c816df5-7a82-449b-876d-c7ef9baf935c")
     assert len(scan["hosts"]) == 220
+
+
+@pytest.mark.vcr()
+def test_scan_results_wasv2_without_history(api):
+    """
+    requests using only was Scan ID
+    """
+    scan = api.scans.results(scan_id="insert was scan id")
+    assert len(scan["vulnerabilities"]) == "watever value is expected for this test scan"
+
+@pytest.mark.vcr()
+def test_scan_results_wasv2_with_history(api):
+    """
+    requests using was Scan ID and History Id
+    """
+    scan = api.scans.results(scan_id="insert WASv2 scan id", history_id="whatever id represents a WAS scan")
+    assert len(scan["hosts"]) == "whatever value is expected for the number of hosts with test data"
 
 
 @pytest.mark.vcr()
